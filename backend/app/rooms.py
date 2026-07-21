@@ -4,7 +4,9 @@ Oda Yönetimi Modülü (Rooms Blueprint)
 - GET    /rooms       -> tüm aktif odaları listeler
 - POST   /rooms       -> yeni oda oluşturur
 - PUT    /rooms/<id>  -> oda bilgilerini günceller
-- DELETE /rooms/<id>  -> odayı pasife alır
+- DELETE /rooms/<id>  -> FR-3: gelecekte rezervasyonu olan bir oda
+                          silinemez, bunun yerine pasife alınır.
+                          Gelecek rezervasyonu olmayan oda gerçekten silinir.
 """
 
 import json
@@ -101,6 +103,15 @@ def update_room(room_id):
     return jsonify(room_to_dict(updated))
 
 
+def _has_upcoming_reservations(db, room_id):
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    count = db.execute(
+        "SELECT COUNT(*) AS c FROM reservations WHERE room_id = ? AND end_time > ?",
+        (room_id, now_iso),
+    ).fetchone()["c"]
+    return count
+
+
 @bp.route("/<int:room_id>", methods=("DELETE",))
 @login_required
 def delete_room(room_id):
@@ -109,18 +120,19 @@ def delete_room(room_id):
     if room is None:
         return not_found("Oda bulunamadı.")
 
-    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    upcoming = db.execute(
-        "SELECT COUNT(*) AS c FROM reservations WHERE room_id = ? AND end_time > ?",
-        (room_id, now_iso),
-    ).fetchone()["c"]
+    upcoming = _has_upcoming_reservations(db, room_id)
 
     if upcoming > 0:
-        return conflict(
-            "Bu odaya ait gelecekteki rezervasyonlar var, önce onları iptal edin.",
-            {"upcoming_reservations": upcoming}
-        )
+        # FR-3: gelecekte rezervasyonu olan oda silinemez, pasife alınır.
+        db.execute("UPDATE rooms SET is_active = 0 WHERE id = ?", (room_id,))
+        db.commit()
+        return jsonify({
+            "message": "Bu odanın gelecekte rezervasyonları olduğu için silinemedi, pasife alındı.",
+            "deactivated": True,
+            "upcoming_reservations": upcoming,
+        })
 
-    db.execute("UPDATE rooms SET is_active = 0 WHERE id = ?", (room_id,))
+    # Gelecek rezervasyonu yok: gerçekten sil.
+    db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
     db.commit()
-    return jsonify({"message": "Oda pasife alındı."})
+    return jsonify({"message": "Oda silindi.", "deleted": True})

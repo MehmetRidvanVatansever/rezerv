@@ -38,6 +38,10 @@ def unauthorized(message: str = "Giriş yapmanız gerekiyor."):
     return error_response("unauthorized", message, 401)
 
 
+def forbidden(message: str = "Bu işlem için yetkiniz yok."):
+    return error_response("forbidden", message, 403)
+
+
 def not_found(message: str):
     return error_response("not_found", message, 404)
 

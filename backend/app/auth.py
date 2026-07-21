@@ -7,6 +7,8 @@ Bu modül, kullanıcı kayıt ve giriş süreçlerini yönetir:
 - Güvenlik: Şifreleme için 'werkzeug.security' (hash), oturum yönetimi için 'session' kullanılır.
 - Veri Formatı: İletişim tamamen JSON üzerinden gerçekleştirilir.
 """
+import functools
+
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify
 )
@@ -14,6 +16,31 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from .db import get_db
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+
+@bp.before_app_request
+def load_logged_in_user():
+    """Her istekten önce session'daki user_id'yi g.user'a yükler."""
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        g.user = None
+    else:
+        g.user = get_db().execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+
+
+def login_required(view):
+    """Girişsiz istekleri 401 ile reddeden decorator. Diğer blueprint'lerde
+    (rooms, reservations) korumalı endpoint'lerin üzerine eklenir."""
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        if g.user is None:
+            return jsonify({"error": "unauthorized", "message": "Giriş yapmanız gerekiyor."}), 401
+        return view(**kwargs)
+
+    return wrapped_view
 
 
 @bp.route("/register", methods=("POST",))
@@ -58,3 +85,10 @@ def login():
     session.clear()
     session["user_id"] = user["id"]
     return jsonify({"message": "Giriş başarılı.", "user": user["ad_soyad"]})
+
+
+@bp.route("/logout", methods=("POST",))
+def logout():
+    """Session'ı temizler, kullanıcıyı çıkış yaptırır."""
+    session.clear()
+    return jsonify({"message": "Çıkış yapıldı."})

@@ -12,6 +12,7 @@ from flask import Blueprint, jsonify, request, g
 from .auth import login_required
 from .db import get_db
 from .errors import error_response, bad_request, not_found, conflict
+from .logging_config import logger
 
 bp = Blueprint("reservations", __name__, url_prefix="/reservations")
 
@@ -109,6 +110,11 @@ def create_reservation():
         (room_id, end.isoformat(), start.isoformat()),
     ).fetchone()
     if conflict_row is not None:
+        logger.warning(
+            f"Çakışma reddi: user_id={g.user['id']} room_id={room_id} "
+            f"start={start.isoformat()} end={end.isoformat()} "
+            f"cakisan_rezervasyon_id={conflict_row['id']}"
+        )
         return conflict(
             "Bu oda seçilen saat aralığında zaten dolu.",
             {"conflicting_reservation_id": conflict_row["id"]}
@@ -118,6 +124,10 @@ def create_reservation():
     if not isinstance(katilimci_sayisi, int) or katilimci_sayisi < 1:
         return bad_request("Katılımcı sayısı en az 1 olmalı.")
     if katilimci_sayisi > room["kapasite"]:
+        logger.warning(
+            f"Kapasite reddi: user_id={g.user['id']} room_id={room_id} "
+            f"katilimci_sayisi={katilimci_sayisi} oda_kapasitesi={room['kapasite']}"
+        )
         return bad_request(f"Bu oda en fazla {room['kapasite']} kişilik.")
 
     cur = db.execute(
@@ -126,6 +136,11 @@ def create_reservation():
         (room_id, g.user["id"], baslik, katilimci_sayisi, start.isoformat(), end.isoformat()),
     )
     db.commit()
+
+    logger.info(
+        f"Rezervasyon oluşturuldu: id={cur.lastrowid} user_id={g.user['id']} "
+        f"room_id={room_id} start={start.isoformat()} end={end.isoformat()}"
+    )
 
     reservation = db.execute("SELECT * FROM reservations WHERE id = ?", (cur.lastrowid,)).fetchone()
     return jsonify(reservation_to_dict(reservation)), 201
@@ -208,6 +223,11 @@ def update_reservation(reservation_id):
         (room_id, reservation_id, end.isoformat(), start.isoformat()),
     ).fetchone()
     if conflict_row is not None:
+        logger.warning(
+            f"Çakışma reddi (güncelleme): user_id={g.user['id']} reservation_id={reservation_id} "
+            f"room_id={room_id} start={start.isoformat()} end={end.isoformat()} "
+            f"cakisan_rezervasyon_id={conflict_row['id']}"
+        )
         return conflict(
             "Bu oda seçilen saat aralığında zaten dolu.",
             {"conflicting_reservation_id": conflict_row["id"]}
@@ -216,6 +236,10 @@ def update_reservation(reservation_id):
     if not isinstance(katilimci_sayisi, int) or katilimci_sayisi < 1:
         return bad_request("Katılımcı sayısı en az 1 olmalı.")
     if katilimci_sayisi > room["kapasite"]:
+        logger.warning(
+            f"Kapasite reddi (güncelleme): user_id={g.user['id']} reservation_id={reservation_id} "
+            f"room_id={room_id} katilimci_sayisi={katilimci_sayisi} oda_kapasitesi={room['kapasite']}"
+        )
         return bad_request(f"Bu oda en fazla {room['kapasite']} kişilik.")
 
     db.execute(
@@ -224,6 +248,11 @@ def update_reservation(reservation_id):
         (room_id, baslik, katilimci_sayisi, start.isoformat(), end.isoformat(), reservation_id),
     )
     db.commit()
+
+    logger.info(
+        f"Rezervasyon güncellendi: id={reservation_id} user_id={g.user['id']} "
+        f"room_id={room_id} start={start.isoformat()} end={end.isoformat()}"
+    )
 
     updated = db.execute("SELECT * FROM reservations WHERE id = ?", (reservation_id,)).fetchone()
     return jsonify(reservation_to_dict(updated))
@@ -239,4 +268,5 @@ def delete_reservation(reservation_id):
 
     db.execute("DELETE FROM reservations WHERE id = ?", (reservation_id,))
     db.commit()
+    logger.info(f"Rezervasyon iptal edildi: id={reservation_id} user_id={g.user['id']}")
     return jsonify({"message": "Rezervasyon iptal edildi."})

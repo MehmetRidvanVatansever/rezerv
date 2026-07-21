@@ -13,6 +13,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from .db import get_db
 from .errors import error_response, bad_request, unauthorized
+from .logging_config import logger
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -80,6 +81,7 @@ def register():
     except db.IntegrityError:
         return bad_request("Bu e-posta zaten kayıtlı.")
 
+    logger.info(f"Yeni kullanıcı kaydı: email={email} departman={departman}")
     return jsonify({"message": "Kayıt başarılı."}), 201
 
 
@@ -98,14 +100,18 @@ def login():
     ).fetchone()
 
     if user is None or not check_password_hash(user["password_hash"], password):
+        logger.warning(f"Başarısız giriş denemesi: email={email}")
         return unauthorized("Geçersiz e-posta veya şifre.")
 
     session.clear()
     session["user_id"] = user["id"]
+    logger.info(f"Giriş başarılı: user_id={user['id']} email={email}")
     return jsonify({"message": "Giriş başarılı.", "user": user["ad_soyad"]})
 
 
 @bp.route("/logout", methods=("POST",))
 def logout():
+    if g.user is not None:
+        logger.info(f"Çıkış yapıldı: user_id={g.user['id']}")
     session.clear()
     return jsonify({"message": "Çıkış yapıldı."})

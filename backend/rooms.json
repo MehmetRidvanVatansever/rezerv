@@ -1,0 +1,298 @@
+[
+  {
+    "id": 1,
+    "ad": "Güneş",
+    "konum": "Kat Zemin",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 2,
+    "ad": "Rüzgar",
+    "konum": "Kat Zemin",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 3,
+    "ad": "Çalık Proje Mühendislik T. Odası - Oda No:1",
+    "konum": "Kat 01",
+    "kapasite": 1,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 4,
+    "ad": "Çalık Proje Mühendislik T. Odası - Oda No:2",
+    "konum": "Kat 01",
+    "kapasite": 1,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 5,
+    "ad": "Çalık Proje Mühendislik T. Odası - Oda No:3",
+    "konum": "Kat 01",
+    "kapasite": 1,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 6,
+    "ad": "Çalık Proje Mühendislik T. Odası - Oda No:4",
+    "konum": "Kat 01",
+    "kapasite": 2,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 7,
+    "ad": "Çalık Proje Mühendislik T. Odası - Oda No:5",
+    "konum": "Kat 01",
+    "kapasite": 5,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 8,
+    "ad": "Çalık Proje Mühendislik T. Odası - Oda No:6",
+    "konum": "Kat 01",
+    "kapasite": 1,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 9,
+    "ad": "Çalık Proje Mühendislik T. Odası - Oda No:7",
+    "konum": "Kat 01",
+    "kapasite": 1,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 10,
+    "ad": "Çalık Proje Mühendislik T. Odası - Oda No:8",
+    "konum": "Kat 01",
+    "kapasite": 1,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 11,
+    "ad": "Çalık Proje Mühendislik T. Odası - Oda No:9",
+    "konum": "Kat 01",
+    "kapasite": 1,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 12,
+    "ad": "Akasya",
+    "konum": "Kat 01",
+    "kapasite": 6,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 13,
+    "ad": "Begonya",
+    "konum": "Kat 02",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 14,
+    "ad": "Nilüfer",
+    "konum": "Kat 02",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 15,
+    "ad": "Sakura",
+    "konum": "Kat 02",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 16,
+    "ad": "Sarmaşık",
+    "konum": "Kat 02",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 17,
+    "ad": "Sardunya (Batı)",
+    "konum": "Kat 03",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 18,
+    "ad": "Karanfil (Doğu)",
+    "konum": "Kat 03",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 19,
+    "ad": "Açelya (GM)",
+    "konum": "Kat 04",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 20,
+    "ad": "Gül (Doğu)",
+    "konum": "Kat 04",
+    "kapasite": 8,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 21,
+    "ad": "Papatya (Batı)",
+    "konum": "Kat 04",
+    "kapasite": 8,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 22,
+    "ad": "Sümbül (Batı)",
+    "konum": "Kat 05",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 23,
+    "ad": "Ender Hıdıroğlu Toplantı Odası",
+    "konum": "Kat 05",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 24,
+    "ad": "Lityum (Batı)",
+    "konum": "Kat 06",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 25,
+    "ad": "Gardenya (Doğu)",
+    "konum": "Kat 07",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 26,
+    "ad": "Zambak (Batı)",
+    "konum": "Kat 07",
+    "kapasite": 8,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 27,
+    "ad": "Gelincik (Denetim)",
+    "konum": "Kat 08",
+    "kapasite": 8,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 28,
+    "ad": "Begonvil (Kuzey)",
+    "konum": "Kat 08",
+    "kapasite": 6,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 29,
+    "ad": "Hanımeli (Batı)",
+    "konum": "Kat 08",
+    "kapasite": 8,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 30,
+    "ad": "Manolya",
+    "konum": "Kat 09",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 31,
+    "ad": "Frezya (Batı)",
+    "konum": "Kat 09",
+    "kapasite": 8,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 32,
+    "ad": "Defne (CEO)",
+    "konum": "Kat 09",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 33,
+    "ad": "Konferans Salonu",
+    "konum": "Kat B3",
+    "kapasite": 240,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 34,
+    "ad": "Mimoza",
+    "konum": "Kat B3",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 35,
+    "ad": "Yasemin",
+    "konum": "Kat B3",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 36,
+    "ad": "Çalık Akademi Eğitim ve Etkileşim Salonu",
+    "konum": "Diğer Lokasyon",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  },
+  {
+    "id": 37,
+    "ad": "Propa Binası 6. Kat Toplantı Odası",
+    "konum": "Diğer Lokasyon",
+    "kapasite": 10,
+    "ekipman": [],
+    "is_active": true
+  }
+]

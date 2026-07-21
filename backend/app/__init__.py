@@ -22,6 +22,8 @@ def create_app(test_config=None):
     app.register_blueprint(auth.bp)
     from . import rooms
     app.register_blueprint(rooms.bp)
+    from . import reservations
+    app.register_blueprint(reservations.bp)
 
     @app.get("/health")
     def health():

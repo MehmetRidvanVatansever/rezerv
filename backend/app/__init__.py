@@ -18,6 +18,10 @@ def create_app(test_config=None):
 
     from . import db
     db.init_app(app)
+    
+    # Hata yanıtları için ortak modül
+    from . import errors
+
     from . import auth
     app.register_blueprint(auth.bp)
     from . import rooms
@@ -28,7 +32,6 @@ def create_app(test_config=None):
     @app.get("/health")
     def health():
         from .db import get_db
-
         get_db().execute("SELECT 1").fetchone()
         return {"status": "ok", "database": app.config["DATABASE"]}
 

@@ -1,20 +1,18 @@
 """
 Kimlik Doğrulama Modülü (Auth Blueprint)
 
-Bu modül, kullanıcı kayıt ve giriş süreçlerini yönetir:
-- /register: Yeni kullanıcı kaydı oluşturur, şifreleri hash'ler ve veritabanına kaydeder.
-- /login: Kullanıcı kimlik doğrulamasını yapar ve oturum (session) başlatır.
-- Güvenlik: Şifreleme için 'werkzeug.security' (hash), oturum yönetimi için 'session' kullanılır.
-- Veri Formatı: İletişim tamamen JSON üzerinden gerçekleştirilir.
+Bu modül, kullanıcı kayıt ve giriş süreçlerini yönetir.
+Tüm hatalar errors.py üzerinden standart formatta döner.
 """
+
 import functools
 import re
 
-from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify
-)
+from flask import Blueprint, request, session, g, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
+
 from .db import get_db
+from .errors import error_response, bad_request, unauthorized
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -33,14 +31,12 @@ def load_logged_in_user():
 
 
 def login_required(view):
-    """Girişsiz istekleri 401 ile reddeden decorator. Diğer blueprint'lerde
-    (rooms, reservations) korumalı endpoint'lerin üzerine eklenir."""
+    """Girişsiz istekleri 401 ile reddeden decorator."""
     @functools.wraps(view)
     def wrapped_view(**kwargs):
         if g.user is None:
-            return jsonify({"error": "unauthorized", "message": "Giriş yapmanız gerekiyor."}), 401
+            return unauthorized()
         return view(**kwargs)
-
     return wrapped_view
 
 
@@ -57,22 +53,22 @@ def register():
     password = data.get("password")
 
     if not all([ad_soyad, departman, email, password]):
-        return jsonify({"error": "Tüm alanlar zorunludur."}), 400
+        return bad_request("Tüm alanlar zorunludur.")
 
     email = email.strip().lower()
     if not EMAIL_RE.match(email):
-        return jsonify({"error": "Geçersiz e-posta formatı."}), 400
+        return bad_request("Geçersiz e-posta formatı.")
 
     if len(password) < 8:
-        return jsonify({"error": "Şifre en az 8 karakter olmalı."}), 400
+        return bad_request("Şifre en az 8 karakter olmalı.")
     if not re.search(r"[A-Z]", password):
-        return jsonify({"error": "Şifre en az bir büyük harf içermeli."}), 400
+        return bad_request("Şifre en az bir büyük harf içermeli.")
     if not re.search(r"[a-z]", password):
-        return jsonify({"error": "Şifre en az bir küçük harf içermeli."}), 400
+        return bad_request("Şifre en az bir küçük harf içermeli.")
     if not re.search(r"[0-9]", password):
-        return jsonify({"error": "Şifre en az bir rakam içermeli."}), 400
+        return bad_request("Şifre en az bir rakam içermeli.")
     if not re.search(r"[!@#$%^&*()_\-+=\[\]{};:'\",.<>/?\\|`~]", password):
-        return jsonify({"error": "Şifre en az bir özel karakter içermeli."}), 400
+        return bad_request("Şifre en az bir özel karakter içermeli.")
 
     db = get_db()
     try:
@@ -82,7 +78,7 @@ def register():
         )
         db.commit()
     except db.IntegrityError:
-        return jsonify({"error": "Bu e-posta zaten kayıtlı."}), 400
+        return bad_request("Bu e-posta zaten kayıtlı.")
 
     return jsonify({"message": "Kayıt başarılı."}), 201
 
@@ -93,13 +89,16 @@ def login():
     email = data.get("email")
     password = data.get("password")
 
+    if not email or not password:
+        return bad_request("E-posta ve şifre zorunludur.")
+
     db = get_db()
     user = db.execute(
         "SELECT * FROM users WHERE email = ?", (email,)
     ).fetchone()
 
     if user is None or not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Geçersiz e-posta veya şifre."}), 401
+        return unauthorized("Geçersiz e-posta veya şifre.")
 
     session.clear()
     session["user_id"] = user["id"]
@@ -108,6 +107,5 @@ def login():
 
 @bp.route("/logout", methods=("POST",))
 def logout():
-    """Session'ı temizler, kullanıcıyı çıkış yaptırır."""
     session.clear()
     return jsonify({"message": "Çıkış yapıldı."})

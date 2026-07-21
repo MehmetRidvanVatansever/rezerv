@@ -1,25 +1,17 @@
 """
 Rezervasyon Modülü (Reservations Blueprint)
 
-- POST   /reservations       -> yeni rezervasyon oluşturur (V-1..V-9 sırasıyla kontrol edilir)
-- GET    /reservations       -> oda ve/veya tarihe göre filtreleyerek listeler
-- PUT    /reservations/<id>  -> günceller (kendisiyle çakışma saymaz)
-- DELETE /reservations/<id>  -> iptal eder
-
-Zaman formatı: ISO 8601, 'YYYY-MM-DDTHH:MM:SS' (saniyesiz de kabul edilir).
-Bu proje tek ofis/tek saat dilimi için tasarlandığı için zaman değerleri
-UTC'ye çevrilmeden, TR yerel saati olarak "naive" (tz'siz) saklanır -
-schema.sql'deki örnek yorum UTC dese de mesai saati/hafta içi
-kontrollerinin basit kalması için yerel saat kullanıyoruz. Çok ofisli/
-çok saat dilimli bir kurulumda bu karar değişmeli.
+Tüm validasyonlar ve hatalar standart error_response ile döner.
 """
+
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import Blueprint, jsonify, request, g
 
 from .auth import login_required
 from .db import get_db
+from .errors import error_response, bad_request, not_found, conflict
 
 bp = Blueprint("reservations", __name__, url_prefix="/reservations")
 
@@ -67,70 +59,66 @@ def create_reservation():
     end_raw = data.get("end_time")
 
     if not all([room_id, baslik, katilimci_sayisi, start_raw, end_raw]):
-        return jsonify({"error": "invalid_input", "message": "room_id, baslik, katilimci_sayisi, start_time, end_time zorunludur."}), 400
+        return bad_request("room_id, baslik, katilimci_sayisi, start_time, end_time zorunludur.")
 
     start = parse_iso(start_raw)
     end = parse_iso(end_raw)
     if start is None or end is None:
-        return jsonify({"error": "invalid_input", "message": "start_time/end_time ISO 8601 formatında olmalı, örn: 2026-07-22T10:00:00"}), 400
+        return bad_request("start_time/end_time ISO 8601 formatında olmalı, örn: 2026-07-22T10:00:00")
 
     # V-1: end > start
     if end <= start:
-        return jsonify({"error": "invalid_range", "message": "Bitiş saati başlangıçtan sonra olmalı."}), 400
+        return bad_request("Bitiş saati başlangıçtan sonra olmalı.")
 
     # V-2: aynı gün içinde
     if start.date() != end.date():
-        return jsonify({"error": "invalid_range", "message": "Rezervasyon aynı gün içinde olmalı."}), 400
+        return bad_request("Rezervasyon aynı gün içinde olmalı.")
 
     # V-3: 08:00-18:00 aralığında
     calisma_baslangic = start.replace(hour=CALISMA_BASLANGIC, minute=0, second=0, microsecond=0)
     calisma_bitis = start.replace(hour=CALISMA_BITIS, minute=0, second=0, microsecond=0)
     if start < calisma_baslangic or end > calisma_bitis:
-        return jsonify({"error": "outside_hours", "message": f"Rezervasyon {CALISMA_BASLANGIC:02d}:00-{CALISMA_BITIS:02d}:00 aralığında olmalı."}), 400
+        return bad_request(f"Rezervasyon {CALISMA_BASLANGIC:02d}:00-{CALISMA_BITIS:02d}:00 aralığında olmalı.")
 
-    # V-4: sadece hafta içi (0=Pazartesi ... 6=Pazar)
+    # V-4: sadece hafta içi
     if start.weekday() >= 5:
-        return jsonify({"error": "weekend", "message": "Rezervasyon sadece hafta içi yapılabilir."}), 400
+        return bad_request("Rezervasyon sadece hafta içi yapılabilir.")
 
-    # V-5: süre 15dk-4saat, 15dk'ya hizalı
+    # V-5: süre kontrolü
     sure_dk = (end - start).total_seconds() / 60
     if sure_dk < MIN_SURE_DK or sure_dk > MAX_SURE_DK:
-        return jsonify({"error": "invalid_duration", "message": f"Süre {MIN_SURE_DK} dakika ile {MAX_SURE_DK // 60} saat arasında olmalı."}), 400
+        return bad_request(f"Süre {MIN_SURE_DK} dakika ile {MAX_SURE_DK // 60} saat arasında olmalı.")
     if sure_dk % MIN_SURE_DK != 0 or start.minute % MIN_SURE_DK != 0:
-        return jsonify({"error": "invalid_duration", "message": "Başlangıç ve süre 15 dakikaya hizalı olmalı (örn: 09:00, 09:15, 09:30...)."}), 400
+        return bad_request("Başlangıç ve süre 15 dakikaya hizalı olmalı (örn: 09:00, 09:15...).")
 
     # V-6: geçmiş tarihe rezervasyon yok
     if start < datetime.now():
-        return jsonify({"error": "past_date", "message": "Geçmiş bir tarihe rezervasyon yapılamaz."}), 400
+        return bad_request("Geçmiş bir tarihe rezervasyon yapılamaz.")
 
     db = get_db()
 
     # V-7: oda var ve aktif mi
     room = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
     if room is None or not room["is_active"]:
-        return jsonify({"error": "room_not_found", "message": "Oda bulunamadı veya aktif değil."}), 404
+        return not_found("Oda bulunamadı veya aktif değil.")
 
-    # V-8: çakışma kontrolü — yeni.start < mevcut.end VE yeni.end > mevcut.start
-    conflict = db.execute(
+    # V-8: çakışma kontrolü
+    conflict_row = db.execute(
         """SELECT id FROM reservations
            WHERE room_id = ? AND start_time < ? AND end_time > ?""",
         (room_id, end.isoformat(), start.isoformat()),
     ).fetchone()
-    if conflict is not None:
-        return jsonify({
-            "error": "conflict",
-            "message": "Bu oda seçilen saat aralığında zaten dolu.",
-            "details": {"conflicting_reservation_id": conflict["id"]},
-        }), 409
+    if conflict_row is not None:
+        return conflict(
+            "Bu oda seçilen saat aralığında zaten dolu.",
+            {"conflicting_reservation_id": conflict_row["id"]}
+        )
 
     # V-9: kapasite kontrolü
     if not isinstance(katilimci_sayisi, int) or katilimci_sayisi < 1:
-        return jsonify({"error": "invalid_input", "message": "Katılımcı sayısı en az 1 olmalı."}), 400
+        return bad_request("Katılımcı sayısı en az 1 olmalı.")
     if katilimci_sayisi > room["kapasite"]:
-        return jsonify({
-            "error": "capacity_exceeded",
-            "message": f"Bu oda en fazla {room['kapasite']} kişilik.",
-        }), 400
+        return bad_request(f"Bu oda en fazla {room['kapasite']} kişilik.")
 
     cur = db.execute(
         """INSERT INTO reservations (room_id, user_id, baslik, katilimci_sayisi, start_time, end_time)
@@ -146,7 +134,7 @@ def create_reservation():
 @bp.route("", methods=("GET",))
 def list_reservations():
     room_id = request.args.get("room_id")
-    date_str = request.args.get("date")  # YYYY-MM-DD
+    date_str = request.args.get("date")
 
     query = "SELECT * FROM reservations WHERE 1=1"
     params = []
@@ -172,7 +160,7 @@ def update_reservation(reservation_id):
     db = get_db()
     existing = db.execute("SELECT * FROM reservations WHERE id = ?", (reservation_id,)).fetchone()
     if existing is None:
-        return jsonify({"error": "not_found", "message": "Rezervasyon bulunamadı."}), 404
+        return not_found("Rezervasyon bulunamadı.")
 
     data = request.get_json() or {}
 
@@ -185,54 +173,50 @@ def update_reservation(reservation_id):
     start = parse_iso(start_raw)
     end = parse_iso(end_raw)
     if start is None or end is None:
-        return jsonify({"error": "invalid_input", "message": "start_time/end_time ISO 8601 formatında olmalı."}), 400
+        return bad_request("start_time/end_time ISO 8601 formatında olmalı.")
 
     if end <= start:
-        return jsonify({"error": "invalid_range", "message": "Bitiş saati başlangıçtan sonra olmalı."}), 400
+        return bad_request("Bitiş saati başlangıçtan sonra olmalı.")
     if start.date() != end.date():
-        return jsonify({"error": "invalid_range", "message": "Rezervasyon aynı gün içinde olmalı."}), 400
+        return bad_request("Rezervasyon aynı gün içinde olmalı.")
 
     calisma_baslangic = start.replace(hour=CALISMA_BASLANGIC, minute=0, second=0, microsecond=0)
     calisma_bitis = start.replace(hour=CALISMA_BITIS, minute=0, second=0, microsecond=0)
     if start < calisma_baslangic or end > calisma_bitis:
-        return jsonify({"error": "outside_hours", "message": f"Rezervasyon {CALISMA_BASLANGIC:02d}:00-{CALISMA_BITIS:02d}:00 aralığında olmalı."}), 400
+        return bad_request(f"Rezervasyon {CALISMA_BASLANGIC:02d}:00-{CALISMA_BITIS:02d}:00 aralığında olmalı.")
 
     if start.weekday() >= 5:
-        return jsonify({"error": "weekend", "message": "Rezervasyon sadece hafta içi yapılabilir."}), 400
+        return bad_request("Rezervasyon sadece hafta içi yapılabilir.")
 
     sure_dk = (end - start).total_seconds() / 60
     if sure_dk < MIN_SURE_DK or sure_dk > MAX_SURE_DK:
-        return jsonify({"error": "invalid_duration", "message": f"Süre {MIN_SURE_DK} dakika ile {MAX_SURE_DK // 60} saat arasında olmalı."}), 400
+        return bad_request(f"Süre {MIN_SURE_DK} dakika ile {MAX_SURE_DK // 60} saat arasında olmalı.")
     if sure_dk % MIN_SURE_DK != 0 or start.minute % MIN_SURE_DK != 0:
-        return jsonify({"error": "invalid_duration", "message": "Başlangıç ve süre 15 dakikaya hizalı olmalı."}), 400
+        return bad_request("Başlangıç ve süre 15 dakikaya hizalı olmalı.")
 
     if start < datetime.now():
-        return jsonify({"error": "past_date", "message": "Geçmiş bir tarihe rezervasyon yapılamaz."}), 400
+        return bad_request("Geçmiş bir tarihe rezervasyon yapılamaz.")
 
     room = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
     if room is None or not room["is_active"]:
-        return jsonify({"error": "room_not_found", "message": "Oda bulunamadı veya aktif değil."}), 404
+        return not_found("Oda bulunamadı veya aktif değil.")
 
-    # çakışma kontrolü — kendi id'si hariç (WHERE id != kendi_id)
-    conflict = db.execute(
+    # Çakışma kontrolü (kendi rezervasyonu hariç)
+    conflict_row = db.execute(
         """SELECT id FROM reservations
            WHERE room_id = ? AND id != ? AND start_time < ? AND end_time > ?""",
         (room_id, reservation_id, end.isoformat(), start.isoformat()),
     ).fetchone()
-    if conflict is not None:
-        return jsonify({
-            "error": "conflict",
-            "message": "Bu oda seçilen saat aralığında zaten dolu.",
-            "details": {"conflicting_reservation_id": conflict["id"]},
-        }), 409
+    if conflict_row is not None:
+        return conflict(
+            "Bu oda seçilen saat aralığında zaten dolu.",
+            {"conflicting_reservation_id": conflict_row["id"]}
+        )
 
     if not isinstance(katilimci_sayisi, int) or katilimci_sayisi < 1:
-        return jsonify({"error": "invalid_input", "message": "Katılımcı sayısı en az 1 olmalı."}), 400
+        return bad_request("Katılımcı sayısı en az 1 olmalı.")
     if katilimci_sayisi > room["kapasite"]:
-        return jsonify({
-            "error": "capacity_exceeded",
-            "message": f"Bu oda en fazla {room['kapasite']} kişilik.",
-        }), 400
+        return bad_request(f"Bu oda en fazla {room['kapasite']} kişilik.")
 
     db.execute(
         """UPDATE reservations SET room_id = ?, baslik = ?, katilimci_sayisi = ?,
@@ -251,7 +235,7 @@ def delete_reservation(reservation_id):
     db = get_db()
     existing = db.execute("SELECT * FROM reservations WHERE id = ?", (reservation_id,)).fetchone()
     if existing is None:
-        return jsonify({"error": "not_found", "message": "Rezervasyon bulunamadı."}), 404
+        return not_found("Rezervasyon bulunamadı.")
 
     db.execute("DELETE FROM reservations WHERE id = ?", (reservation_id,))
     db.commit()

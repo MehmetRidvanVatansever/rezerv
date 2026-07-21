@@ -8,6 +8,7 @@ Bu modül, kullanıcı kayıt ve giriş süreçlerini yönetir:
 - Veri Formatı: İletişim tamamen JSON üzerinden gerçekleştirilir.
 """
 import functools
+import re
 
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify
@@ -43,6 +44,9 @@ def login_required(view):
     return wrapped_view
 
 
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
 @bp.route("/register", methods=("POST",))
 def register():
     data = request.get_json()
@@ -54,6 +58,21 @@ def register():
 
     if not all([ad_soyad, departman, email, password]):
         return jsonify({"error": "Tüm alanlar zorunludur."}), 400
+
+    email = email.strip().lower()
+    if not EMAIL_RE.match(email):
+        return jsonify({"error": "Geçersiz e-posta formatı."}), 400
+
+    if len(password) < 8:
+        return jsonify({"error": "Şifre en az 8 karakter olmalı."}), 400
+    if not re.search(r"[A-Z]", password):
+        return jsonify({"error": "Şifre en az bir büyük harf içermeli."}), 400
+    if not re.search(r"[a-z]", password):
+        return jsonify({"error": "Şifre en az bir küçük harf içermeli."}), 400
+    if not re.search(r"[0-9]", password):
+        return jsonify({"error": "Şifre en az bir rakam içermeli."}), 400
+    if not re.search(r"[!@#$%^&*()_\-+=\[\]{};:'\",.<>/?\\|`~]", password):
+        return jsonify({"error": "Şifre en az bir özel karakter içermeli."}), 400
 
     db = get_db()
     try:

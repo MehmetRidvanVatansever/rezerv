@@ -9,6 +9,7 @@ def create_app(test_config=None):
         SECRET_KEY=os.environ.get("SECRET_KEY", "dev"),
         DATABASE=os.path.join(app.instance_path, "rezerv.db"),
     )
+    app.json.ensure_ascii = False  # JSON çıktısında Türkçe karakterler \uXXXX yerine düz yazılsın
 
     if test_config:
         app.config.update(test_config)

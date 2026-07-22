@@ -114,6 +114,36 @@ def test_ayni_saat_kendi_guncellemesi_gecerli(auth_client, mevcut_rezervasyon):
     assert resp.status_code == 200
 
 
+def test_update_baska_rezervasyonla_cakisirsa_409(auth_client, mevcut_rezervasyon):
+    """mevcut_rezervasyon 10:00-11:00'da. Ayni odada 14:00-15:00 ikinci bir
+    rezervasyon olustur, sonra onu 10:30-11:30'a tasimaya calis -> kendisi
+    DEGIL, mevcut_rezervasyon ile cakisiyor, 409 donmeli."""
+    ikinci_baslangic = mevcut_rezervasyon["baslangic"].replace(hour=14)
+    ikinci_bitis = mevcut_rezervasyon["baslangic"].replace(hour=15)
+    resp = _rezervasyon_yap(
+        auth_client, mevcut_rezervasyon["room_id"], ikinci_baslangic, ikinci_bitis
+    )
+    assert resp.status_code == 201
+    ikinci_id = resp.get_json()["id"]
+
+    yeni_baslangic = mevcut_rezervasyon["baslangic"].replace(minute=30)
+    yeni_bitis = mevcut_rezervasyon["bitis"].replace(minute=30)
+    resp2 = auth_client.put(f"/reservations/{ikinci_id}", json={
+        "start_time": iso(yeni_baslangic),
+        "end_time": iso(yeni_bitis),
+    })
+    assert resp2.status_code == 409
+
+
+def test_update_kapasite_asimi_400(auth_client, ornek_oda, mevcut_rezervasyon):
+    """mevcut_rezervasyon'u, ornek_oda'nin kapasitesini (6) asan bir
+    katilimci sayisiyla guncellemeye calis -> 400 donmeli."""
+    resp = auth_client.put(f"/reservations/{mevcut_rezervasyon['id']}", json={
+        "katilimci_sayisi": ornek_oda["kapasite"] + 5,
+    })
+    assert resp.status_code == 400
+
+
 # ---- Diger validasyonlar (V-1 -> V-7, V-9) ----
 
 def test_bitis_baslangictan_once_reddedilir(auth_client, ornek_oda):

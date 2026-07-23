@@ -85,6 +85,23 @@ def diger_auth_client(app):
 
 
 @pytest.fixture
+def admin_client(app):
+    """Kayit olup giris yapmis, sonra veritabaninda role='admin' olarak
+    manuel isaretlenmis bir kullanici (gercek ortamdaki admin atama
+    yontemiyle ayni: 'UPDATE users SET role = admin WHERE email = ...')."""
+    admin = app.test_client()
+    _register_and_login(admin, "admin@calik.com")
+
+    with app.app_context():
+        from app.db import get_db
+        db = get_db()
+        db.execute("UPDATE users SET role = 'admin' WHERE email = ?", ("admin@calik.com",))
+        db.commit()
+
+    return admin
+
+
+@pytest.fixture
 def ornek_oda(app):
     """Testler icin veritabanina dogrudan bir oda ekler, dict olarak dondurur."""
     with app.app_context():

@@ -1,20 +1,23 @@
 """
 Oda Yönetimi Modülü (Rooms Blueprint)
 
-- GET    /rooms       -> tüm aktif odaları listeler
-- POST   /rooms       -> yeni oda oluşturur
-- PUT    /rooms/<id>  -> oda bilgilerini günceller
-- DELETE /rooms/<id>  -> FR-3: gelecekte rezervasyonu olan bir oda
-                          silinemez, bunun yerine pasife alınır.
-                          Gelecek rezervasyonu olmayan oda gerçekten silinir.
+- GET    /rooms                 -> tüm odaları listeler (aktif + pasif)
+- POST   /rooms                 -> yeni oda oluşturur (sadece admin)
+- PUT    /rooms/<id>            -> oda bilgilerini günceller (sadece admin)
+- POST   /rooms/<id>/deactivate -> odayı pasifleştirir (sadece admin)
+- POST   /rooms/<id>/reactivate -> odayı aktif eder (sadece admin)
+- POST   /rooms/<id>/favorite   -> giriş yapmış kullanıcı için favori toggle
+- GET    /rooms/favorites       -> giriş yapmış kullanıcının favori odaları
+
+NOT: DELETE /rooms/<id> kaldırıldı. Odalar artık hiçbir zaman gerçekten
+silinmiyor, sadece is_active alanı ile pasifleştirilip aktif edilebiliyor.
 """
 
 import json
-from datetime import datetime, timezone
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 
-from .auth import login_required
+from .auth import login_required, admin_required
 from .db import get_db
 from .errors import error_response, bad_request, not_found, conflict
 
@@ -34,15 +37,15 @@ def room_to_dict(row):
 
 @bp.route("", methods=("GET",))
 def list_rooms():
+    """Tüm odaları döner (aktif + pasif). Frontend, is_active alanına
+    bakarak pasif odaları farklı gösterebilir."""
     db = get_db()
-    rooms = db.execute(
-        "SELECT * FROM rooms WHERE is_active = 1 ORDER BY ad"
-    ).fetchall()
+    rooms = db.execute("SELECT * FROM rooms ORDER BY ad").fetchall()
     return jsonify([room_to_dict(r) for r in rooms])
 
 
 @bp.route("", methods=("POST",))
-@login_required
+@admin_required
 def create_room():
     data = request.get_json() or {}
 
@@ -72,7 +75,7 @@ def create_room():
 
 
 @bp.route("/<int:room_id>", methods=("PUT",))
-@login_required
+@admin_required
 def update_room(room_id):
     db = get_db()
     room = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
@@ -103,36 +106,71 @@ def update_room(room_id):
     return jsonify(room_to_dict(updated))
 
 
-def _has_upcoming_reservations(db, room_id):
-    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    count = db.execute(
-        "SELECT COUNT(*) AS c FROM reservations WHERE room_id = ? AND end_time > ?",
-        (room_id, now_iso),
-    ).fetchone()["c"]
-    return count
-
-
-@bp.route("/<int:room_id>", methods=("DELETE",))
-@login_required
-def delete_room(room_id):
+@bp.route("/<int:room_id>/deactivate", methods=("POST",))
+@admin_required
+def deactivate_room(room_id):
     db = get_db()
     room = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
     if room is None:
         return not_found("Oda bulunamadı.")
 
-    upcoming = _has_upcoming_reservations(db, room_id)
-
-    if upcoming > 0:
-        # FR-3: gelecekte rezervasyonu olan oda silinemez, pasife alınır.
-        db.execute("UPDATE rooms SET is_active = 0 WHERE id = ?", (room_id,))
-        db.commit()
-        return jsonify({
-            "message": "Bu odanın gelecekte rezervasyonları olduğu için silinemedi, pasife alındı.",
-            "deactivated": True,
-            "upcoming_reservations": upcoming,
-        })
-
-    # Gelecek rezervasyonu yok: gerçekten sil.
-    db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
+    db.execute("UPDATE rooms SET is_active = 0 WHERE id = ?", (room_id,))
     db.commit()
-    return jsonify({"message": "Oda silindi.", "deleted": True})
+
+    updated = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
+    return jsonify(room_to_dict(updated))
+
+
+@bp.route("/<int:room_id>/reactivate", methods=("POST",))
+@admin_required
+def reactivate_room(room_id):
+    db = get_db()
+    room = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
+    if room is None:
+        return not_found("Oda bulunamadı.")
+
+    db.execute("UPDATE rooms SET is_active = 1 WHERE id = ?", (room_id,))
+    db.commit()
+
+    updated = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
+    return jsonify(room_to_dict(updated))
+
+
+@bp.route("/favorites", methods=("GET",))
+@login_required
+def list_favorites():
+    db = get_db()
+    rows = db.execute(
+        """SELECT rooms.* FROM favorite_rooms
+           JOIN rooms ON rooms.id = favorite_rooms.room_id
+           WHERE favorite_rooms.user_id = ?
+           ORDER BY favorite_rooms.created_at DESC""",
+        (g.user["id"],),
+    ).fetchall()
+    return jsonify([room_to_dict(r) for r in rows])
+
+
+@bp.route("/<int:room_id>/favorite", methods=("POST",))
+@login_required
+def toggle_favorite(room_id):
+    db = get_db()
+    room = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
+    if room is None:
+        return not_found("Oda bulunamadı.")
+
+    existing = db.execute(
+        "SELECT id FROM favorite_rooms WHERE user_id = ? AND room_id = ?",
+        (g.user["id"], room_id),
+    ).fetchone()
+
+    if existing is not None:
+        db.execute("DELETE FROM favorite_rooms WHERE id = ?", (existing["id"],))
+        db.commit()
+        return jsonify({"room_id": room_id, "favorited": False})
+
+    db.execute(
+        "INSERT INTO favorite_rooms (user_id, room_id) VALUES (?, ?)",
+        (g.user["id"], room_id),
+    )
+    db.commit()
+    return jsonify({"room_id": room_id, "favorited": True})

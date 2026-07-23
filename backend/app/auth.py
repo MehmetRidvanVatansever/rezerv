@@ -12,7 +12,7 @@ from flask import Blueprint, request, session, g, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .db import get_db
-from .errors import error_response, bad_request, unauthorized
+from .errors import error_response, bad_request, unauthorized, forbidden
 from .logging_config import logger
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -37,6 +37,21 @@ def login_required(view):
     def wrapped_view(**kwargs):
         if g.user is None:
             return unauthorized()
+        return view(**kwargs)
+    return wrapped_view
+
+
+def admin_required(view):
+    """Girişsizse 401, giriş yapmış ama admin değilse 403 döner.
+    Admin rolü şu an için manuel olarak veritabanında atanır:
+        UPDATE users SET role = 'admin' WHERE email = '...';
+    """
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        if g.user is None:
+            return unauthorized()
+        if g.user["role"] != "admin":
+            return forbidden("Bu işlem için admin yetkisi gerekli.")
         return view(**kwargs)
     return wrapped_view
 
@@ -106,7 +121,15 @@ def login():
     session.clear()
     session["user_id"] = user["id"]
     logger.info(f"Giriş başarılı: user_id={user['id']} email={email}")
-    return jsonify({"message": "Giriş başarılı.", "user": user["ad_soyad"]})
+    return jsonify({
+        "message": "Giriş başarılı.",
+        "user": {
+            "id": user["id"],
+            "ad_soyad": user["ad_soyad"],
+            "departman": user["departman"],
+            "role": user["role"],
+        },
+    })
 
 
 @bp.route("/logout", methods=("POST",))

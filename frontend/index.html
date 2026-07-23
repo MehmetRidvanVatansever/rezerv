@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rezerv</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">R</div>
+      <span>Rezerv</span>
+    </div>
+    <div class="user-box hidden" id="user-box">
+      <span class="user-name" id="user-name"></span>
+      <button class="btn btn-sm btn-secondary" id="logout-btn" style="background:transparent;color:#fff;border-color:#fff;">Çıkış Yap</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ---------- GİRİŞ / KAYIT ---------- -->
+    <div id="auth-view">
+      <div class="auth-wrapper">
+        <h1>Toplantı Odası Rezervasyonu</h1>
+
+        <div class="auth-tabs">
+          <div class="auth-tab active" id="tab-login">Giriş Yap</div>
+          <div class="auth-tab" id="tab-register">Kayıt Ol</div>
+        </div>
+
+        <div id="auth-alert" class="alert hidden"></div>
+
+        <form id="form-login">
+          <div class="field">
+            <label for="login-email">E-posta</label>
+            <input type="email" id="login-email" required autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="login-password">Şifre</label>
+            <input type="password" id="login-password" required autocomplete="current-password" />
+          </div>
+          <button type="submit" class="btn btn-block">Giriş Yap</button>
+        </form>
+
+        <form id="form-register" class="hidden">
+          <div class="field">
+            <label for="reg-ad-soyad">Ad Soyad</label>
+            <input type="text" id="reg-ad-soyad" required />
+          </div>
+          <div class="field">
+            <label for="reg-departman">Departman</label>
+            <input type="text" id="reg-departman" required />
+          </div>
+          <div class="field">
+            <label for="reg-email">E-posta</label>
+            <input type="email" id="reg-email" required autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="reg-password">Şifre</label>
+            <input type="password" id="reg-password" required autocomplete="new-password" />
+          </div>
+          <button type="submit" class="btn btn-block">Kayıt Ol</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ---------- ANA UYGULAMA ---------- -->
+    <div id="app-view" class="hidden">
+      <div id="app-alert" class="alert hidden"></div>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-rooms-btn">Odalar</button>
+        <button class="tab-btn" id="tab-find-btn">Boş Oda Bul</button>
+        <button class="tab-btn" id="tab-reservations-btn">Rezervasyonlarım</button>
+        <button class="tab-btn" id="tab-history-btn">Geçmişim</button>
+      </div>
+
+      <div class="panel" id="panel-rooms">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+          <h2>Toplantı Odaları</h2>
+          <button class="btn btn-sm" id="new-reservation-btn">+ Yeni Rezervasyon</button>
+        </div>
+        <div class="field" style="max-width:320px; margin-top:10px;">
+          <input type="text" id="room-search" placeholder="Oda adı, kat veya kapasite ara..." />
+        </div>
+        <div id="room-groups"></div>
+      </div>
+
+      <div class="panel hidden" id="panel-find">
+        <h2>Boş Oda Bul</h2>
+        <p style="color:var(--color-text-muted); font-size:0.85rem; margin-top:-6px;">
+          Tarih, saat aralığı ve katılımcı sayısını girin; isterseniz ihtiyacınız olan ekipmanları da seçin.
+        </p>
+        <form id="form-find">
+          <div class="field-row">
+            <div class="field">
+              <label for="find-date">Tarih</label>
+              <input type="date" id="find-date" required />
+            </div>
+            <div class="field">
+              <label for="find-katilimci">Katılımcı Sayısı</label>
+              <input type="number" id="find-katilimci" min="1" value="1" required />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="find-start">Başlangıç Saati</label>
+              <input type="time" id="find-start" step="900" required />
+            </div>
+            <div class="field">
+              <label for="find-end">Bitiş Saati</label>
+              <input type="time" id="find-end" step="900" required />
+            </div>
+          </div>
+          <div class="field">
+            <label>İstenen Ekipman (opsiyonel)</label>
+            <div class="checkbox-group" id="find-ekipman-group"></div>
+          </div>
+          <button type="submit" class="btn">Ara</button>
+        </form>
+        <div id="find-alert" class="alert hidden" style="margin-top:16px;"></div>
+        <div class="room-grid" id="find-results" style="margin-top:16px;"></div>
+      </div>
+
+      <div class="panel hidden" id="panel-reservations">
+        <h2>Yaklaşan Rezervasyonlarım</h2>
+        <div class="reservation-list" id="reservation-list"></div>
+      </div>
+
+      <div class="panel hidden" id="panel-history">
+        <h2>Geçmişim</h2>
+        <p style="color:var(--color-text-muted); font-size:0.85rem; margin-top:-6px;">
+          Yaptığınız tüm rezervasyonlar (geçmiş ve gelecek).
+        </p>
+        <div class="reservation-list" id="history-list"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ---------- REZERVASYON MODALI ---------- -->
+  <div class="modal-backdrop hidden" id="reservation-modal">
+    <div class="modal">
+      <h2>Yeni Rezervasyon</h2>
+      <div id="modal-alert" class="alert hidden"></div>
+      <div id="modal-suggestions"></div>
+
+      <form id="form-reservation">
+        <div class="field">
+          <label for="res-room">Oda</label>
+          <select id="res-room" required></select>
+        </div>
+        <div class="field">
+          <label for="res-baslik">Toplantı Başlığı</label>
+          <input type="text" id="res-baslik" required />
+        </div>
+        <div class="field">
+          <label for="res-katilimci">Katılımcı Sayısı</label>
+          <input type="number" id="res-katilimci" min="1" required />
+        </div>
+        <div class="field">
+          <label for="res-date">Tarih</label>
+          <input type="date" id="res-date" required />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="res-start">Başlangıç Saati</label>
+            <input type="time" id="res-start" step="900" required />
+          </div>
+          <div class="field">
+            <label for="res-end">Bitiş Saati</label>
+            <input type="time" id="res-end" step="900" required />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Vazgeç</button>
+          <button type="submit" class="btn">Rezervasyon Yap</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -16,6 +16,27 @@
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* ---------- Karanlık Mod ---------- */
+html[data-theme="dark"] {
+  --color-primary: #4d8fe8;
+  --color-primary-dark: #6fa5ee;
+  --color-primary-light: #1c2c42;
+  --color-danger: #e6685a;
+  --color-danger-light: #3a2323;
+  --color-success: #4caf6a;
+  --color-success-light: #1f3324;
+  --color-bg: #12161f;
+  --color-surface: #1a202c;
+  --color-border: #2d3646;
+  --color-text: #e5e7eb;
+  --color-text-muted: #9aa4b2;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .app-header .brand-logo {
+  background: var(--color-surface);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -69,6 +90,31 @@ body {
   align-items: center;
   gap: 12px;
   font-size: 0.9rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .user-box .user-name {
@@ -505,4 +551,120 @@ button {
     flex-direction: column;
     gap: 0;
   }
+}
+
+/* ---------- Pasif (kullanım dışı) oda kartı ---------- */
+.room-card-inactive {
+  opacity: 0.6;
+  background: var(--color-border);
+  position: relative;
+}
+
+.badge-inactive {
+  display: inline-block;
+  background: var(--color-text-muted);
+  color: var(--color-surface);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+/* ---------- Oda kartı üst satır (başlık + favori) ---------- */
+.room-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.room-card-top h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  color: var(--color-primary-dark);
+}
+
+.favorite-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  padding: 0 0 0 6px;
+  flex-shrink: 0;
+}
+
+.favorite-btn.favorited {
+  color: #e8b923;
+}
+
+/* ---------- İstatistik kartları ---------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.stat-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+/* ---------- Admin paneli tabloları ---------- */
+.panel #panel-admin h3,
+#panel-admin h3 {
+  font-size: 0.95rem;
+  margin: 24px 0 4px;
+  color: var(--color-primary-dark);
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-top: 10px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-table thead th {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
 }

@@ -18,6 +18,7 @@ const state = {
   rooms: [],
   reservations: [],
   gecmisim: [],
+  favorites: [],
 };
 
 // ---------- Yardımcılar ----------
@@ -127,7 +128,7 @@ async function handleLogin(ev) {
 
   try {
     const data = await api("/auth/login", { method: "POST", body: payload });
-    state.user = { ad_soyad: data.user };
+    state.user = data.user; // {id, ad_soyad, departman, role}
     await enterApp();
   } catch (err) {
     showAlert("auth-alert", err.message);
@@ -143,6 +144,8 @@ async function handleLogout() {
   state.user = null;
   state.rooms = [];
   state.reservations = [];
+  state.favorites = [];
+  el("tab-admin-btn").classList.add("hidden");
   el("app-view").classList.add("hidden");
   el("auth-view").classList.remove("hidden");
   el("user-box").classList.add("hidden");
@@ -156,8 +159,9 @@ async function enterApp() {
   el("app-view").classList.remove("hidden");
   el("user-box").classList.remove("hidden");
   el("user-name").textContent = state.user.ad_soyad;
+  el("tab-admin-btn").classList.toggle("hidden", state.user.role !== "admin");
 
-  await Promise.all([loadRooms(), loadReservations()]);
+  await Promise.all([loadRooms(), loadReservations(), loadFavorites()]);
   renderRooms();
   renderReservations();
 }
@@ -170,6 +174,84 @@ async function loadRooms() {
   } catch (err) {
     showAlert("app-alert", "Odalar yüklenemedi: " + err.message);
   }
+}
+
+// ---------- Favori odalar ----------
+
+async function loadFavorites() {
+  try {
+    state.favorites = await api("/rooms/favorites");
+  } catch (err) {
+    state.favorites = [];
+  }
+}
+
+function isFavorite(roomId) {
+  return state.favorites.some((r) => r.id === roomId);
+}
+
+async function toggleFavorite(roomId) {
+  try {
+    await api(`/rooms/${roomId}/favorite`, { method: "POST" });
+    await loadFavorites();
+    renderRooms();
+    if (!el("panel-favorites").classList.contains("hidden")) {
+      renderFavorites();
+    }
+  } catch (err) {
+    showAlert("app-alert", "Favori güncellenemedi: " + err.message);
+  }
+}
+
+function renderFavorites() {
+  const grid = el("favorites-grid");
+  grid.innerHTML = "";
+  if (state.favorites.length === 0) {
+    grid.innerHTML = '<div class="empty-state">Henüz favori odanız yok. Oda kartlarındaki ☆ ikonuna tıklayarak ekleyebilirsiniz.</div>';
+    return;
+  }
+  state.favorites.forEach((room) => grid.appendChild(createRoomCard(room, { showLocation: true })));
+}
+
+// ---------- Ortak oda kartı üretimi ----------
+
+/** Odalar sekmesi, Boş Oda Bul sonuçları ve Favoriler panelinin ortak
+ * kullandığı oda kartı. Pasif odalarda buton disabled ve rozet gösterilir. */
+function createRoomCard(room, opts = {}) {
+  const { showLocation = false, onReserve = null } = opts;
+
+  const card = document.createElement("div");
+  card.className = "room-card" + (room.is_active ? "" : " room-card-inactive");
+
+  const ekipman = (room.ekipman || []).map((e) => `<span class="tag">${e}</span>`).join("");
+  const favorited = isFavorite(room.id);
+
+  card.innerHTML = `
+    ${!room.is_active ? '<span class="badge-inactive">Kullanım Dışı</span>' : ""}
+    <div class="room-card-top">
+      <h3>${room.ad}</h3>
+      <button type="button" class="favorite-btn ${favorited ? "favorited" : ""}" title="Favorilere ekle/çıkar">${favorited ? "★" : "☆"}</button>
+    </div>
+    <div class="meta">
+      ${showLocation ? `<div>📍 ${floorLabel(room.konum)}</div>` : ""}
+      <div>👥 ${room.kapasite} kişi kapasiteli</div>
+    </div>
+    <div>${ekipman}</div>
+    <button type="button" class="btn btn-sm reserve-btn" style="margin-top:10px" ${room.is_active ? "" : "disabled"}>
+      ${room.is_active ? "Rezervasyon Yap" : "Kullanım Dışı"}
+    </button>
+  `;
+
+  card.querySelector(".favorite-btn").addEventListener("click", () => toggleFavorite(room.id));
+
+  if (room.is_active) {
+    card.querySelector(".reserve-btn").addEventListener("click", () => {
+      if (onReserve) onReserve(room);
+      else openReservationModal(room.id);
+    });
+  }
+
+  return card;
 }
 
 // ---------- Kat sirasi ve isimlendirme ----------
@@ -208,12 +290,14 @@ function renderRooms() {
 
   const select = el("res-room");
   select.innerHTML = '<option value="">Oda seçiniz</option>';
-  state.rooms.forEach((room) => {
-    const opt = document.createElement("option");
-    opt.value = room.id;
-    opt.textContent = `${room.ad} (${floorLabel(room.konum)}, ${room.kapasite} kişi)`;
-    select.appendChild(opt);
-  });
+  state.rooms
+    .filter((r) => r.is_active) // pasif odalar rezervasyon icin secilemez
+    .forEach((room) => {
+      const opt = document.createElement("option");
+      opt.value = room.id;
+      opt.textContent = `${room.ad} (${floorLabel(room.konum)}, ${room.kapasite} kişi)`;
+      select.appendChild(opt);
+    });
 
   const filtered = state.rooms.filter((r) => roomMatchesSearch(r, term));
 
@@ -246,21 +330,7 @@ function renderRooms() {
     grid.className = "room-grid";
 
     odalar.forEach((room) => {
-      const card = document.createElement("div");
-      card.className = "room-card";
-      const ekipman = (room.ekipman || [])
-        .map((e) => `<span class="tag">${e}</span>`)
-        .join("");
-      card.innerHTML = `
-        <h3>${room.ad}</h3>
-        <div class="meta">
-          <div>👥 ${room.kapasite} kişi kapasiteli</div>
-        </div>
-        <div>${ekipman}</div>
-        <button class="btn btn-sm" style="margin-top:10px" data-room-id="${room.id}">Rezervasyon Yap</button>
-      `;
-      card.querySelector("button").addEventListener("click", () => openReservationModal(room.id));
-      grid.appendChild(card);
+      grid.appendChild(createRoomCard(room, { showLocation: false }));
     });
 
     details.appendChild(grid);
@@ -380,6 +450,7 @@ async function handleFindSubmit(ev) {
   }
 
   const uygunOdalar = state.rooms.filter((room) => {
+    if (!room.is_active) return false; // pasif odalar rezervasyon icin onerilmez
     if (room.kapasite < katilimci) return false;
     const roomEkipman = room.ekipman || [];
     const ekipmanUyuyor = istenenEkipman.every((e) => roomEkipman.includes(e));
@@ -402,23 +473,14 @@ function renderFindResults(odalar, date, startStr, endStr) {
 
   box.innerHTML = "";
   odalar.forEach((room) => {
-    const card = document.createElement("div");
-    card.className = "room-card";
-    const ekipman = (room.ekipman || []).map((e) => `<span class="tag">${e}</span>`).join("");
-    card.innerHTML = `
-      <h3>${room.ad}</h3>
-      <div class="meta">
-        <div>📍 ${floorLabel(room.konum)}</div>
-        <div>👥 ${room.kapasite} kişi kapasiteli</div>
-      </div>
-      <div>${ekipman}</div>
-      <button class="btn btn-sm" style="margin-top:10px">Rezervasyon Yap</button>
-    `;
-    card.querySelector("button").addEventListener("click", () => {
-      openReservationModal(room.id);
-      el("res-date").value = date;
-      el("res-start").value = startStr;
-      el("res-end").value = endStr;
+    const card = createRoomCard(room, {
+      showLocation: true,
+      onReserve: (r) => {
+        openReservationModal(r.id);
+        el("res-date").value = date;
+        el("res-start").value = startStr;
+        el("res-end").value = endStr;
+      },
     });
     box.appendChild(card);
   });
@@ -685,16 +747,22 @@ function renderAlternatifler(adaylar, mod, sureDk, date) {
 function initAppTabs() {
   el("tab-rooms-btn").addEventListener("click", () => switchAppTab("rooms"));
   el("tab-find-btn").addEventListener("click", () => switchAppTab("find"));
+  el("tab-favorites-btn").addEventListener("click", () => switchAppTab("favorites"));
   el("tab-reservations-btn").addEventListener("click", () => switchAppTab("reservations"));
   el("tab-history-btn").addEventListener("click", () => switchAppTab("history"));
+  el("tab-stats-btn").addEventListener("click", () => switchAppTab("stats"));
+  el("tab-admin-btn").addEventListener("click", () => switchAppTab("admin"));
 }
 
 async function switchAppTab(which) {
   const tabs = {
     rooms: { btn: "tab-rooms-btn", panel: "panel-rooms" },
     find: { btn: "tab-find-btn", panel: "panel-find" },
+    favorites: { btn: "tab-favorites-btn", panel: "panel-favorites" },
     reservations: { btn: "tab-reservations-btn", panel: "panel-reservations" },
     history: { btn: "tab-history-btn", panel: "panel-history" },
+    stats: { btn: "tab-stats-btn", panel: "panel-stats" },
+    admin: { btn: "tab-admin-btn", panel: "panel-admin" },
   };
 
   Object.entries(tabs).forEach(([key, { btn, panel }]) => {
@@ -705,7 +773,141 @@ async function switchAppTab(which) {
   if (which === "history") {
     await loadGecmisim();
     renderGecmisim();
+  } else if (which === "favorites") {
+    await loadFavorites();
+    renderFavorites();
+  } else if (which === "stats") {
+    await loadAndRenderMyStats();
+  } else if (which === "admin") {
+    await loadAndRenderAdminPanel();
   }
+}
+
+// ---------- Kişisel istatistikler ----------
+
+function statCard(label, value) {
+  return `<div class="stat-card"><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>`;
+}
+
+async function loadAndRenderMyStats() {
+  const grid = el("my-stats-grid");
+  try {
+    const s = await api("/reservations/my-stats");
+    const odaBilgisi = s.en_cok_kullandigi_oda
+      ? `${s.en_cok_kullandigi_oda.ad} (${s.en_cok_kullandigi_oda.sayi} kez)`
+      : "—";
+    const ortSure = s.ortalama_toplanti_suresi_dk !== null
+      ? `${s.ortalama_toplanti_suresi_dk} dk`
+      : "—";
+
+    grid.innerHTML = [
+      statCard("Toplam Rezervasyon", s.toplam_rezervasyon),
+      statCard("Ortalama Toplantı Süresi", ortSure),
+      statCard("En Çok Kullandığınız Oda", odaBilgisi),
+    ].join("");
+  } catch (err) {
+    grid.innerHTML = "";
+    showAlert("app-alert", "İstatistikleriniz yüklenemedi: " + err.message);
+  }
+}
+
+// ---------- Admin paneli ----------
+
+async function loadAndRenderAdminPanel() {
+  try {
+    const [overview, rooms, departments, time] = await Promise.all([
+      api("/admin/stats/overview"),
+      api("/admin/stats/rooms"),
+      api("/admin/stats/departments"),
+      api("/admin/stats/time"),
+    ]);
+    renderAdminOverview(overview);
+    renderAdminRoomsTable(rooms);
+    renderAdminDepartmentsTable(departments);
+    renderAdminTime(time);
+  } catch (err) {
+    showAlert("app-alert", "Admin istatistikleri yüklenemedi: " + err.message);
+  }
+}
+
+function renderAdminOverview(o) {
+  el("admin-overview-grid").innerHTML = [
+    statCard("Toplam Kullanıcı", o.toplam_kullanici),
+    statCard("Aktif Oda", o.aktif_oda_sayisi),
+    statCard("Pasif Oda", o.pasif_oda_sayisi),
+    statCard("Toplam Rezervasyon", o.toplam_rezervasyon),
+    statCard("Bugünkü Rezervasyon", o.bugunku_rezervasyon_sayisi),
+    statCard("Son 7 Gün", o.son_7_gun_rezervasyon_sayisi),
+  ].join("");
+}
+
+function renderAdminRoomsTable(data) {
+  const rows = data.tum_odalar
+    .map(
+      (r) => `
+      <tr>
+        <td>${r.ad}</td>
+        <td>${floorLabel(r.konum)}</td>
+        <td>${r.is_active ? "Aktif" : "Pasif"}</td>
+        <td>${r.rezervasyon_sayisi}</td>
+      </tr>`
+    )
+    .join("");
+
+  el("admin-rooms-table").innerHTML = `
+    <thead><tr><th>Oda</th><th>Konum</th><th>Durum</th><th>Rezervasyon</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="4" class="empty-state">Kayıt yok</td></tr>'}</tbody>
+  `;
+}
+
+function renderAdminDepartmentsTable(data) {
+  const rows = data
+    .map(
+      (d) => `
+      <tr><td>${d.departman}</td><td>${d.kullanici_sayisi}</td><td>${d.rezervasyon_sayisi}</td></tr>`
+    )
+    .join("");
+
+  el("admin-departments-table").innerHTML = `
+    <thead><tr><th>Departman</th><th>Kullanıcı Sayısı</th><th>Rezervasyon</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="3" class="empty-state">Kayıt yok</td></tr>'}</tbody>
+  `;
+}
+
+function renderAdminTime(t) {
+  const enYogunSaat = t.en_yogun_saat ? `${t.en_yogun_saat.saat} (${t.en_yogun_saat.sayi})` : "—";
+  const enYogunGun = t.en_yogun_gun ? `${t.en_yogun_gun.gun} (${t.en_yogun_gun.sayi})` : "—";
+
+  el("admin-time-grid").innerHTML = [
+    statCard("En Yoğun Saat", enYogunSaat),
+    statCard("En Yoğun Gün", enYogunGun),
+  ].join("");
+}
+
+// ---------- Karanlık Mod ----------
+
+function initThemeToggle() {
+  const THEME_KEY = "rezerv-theme";
+  const btn = el("theme-toggle-btn");
+  const saved = localStorage.getItem(THEME_KEY);
+
+  if (saved === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+    btn.textContent = "☀️";
+  }
+
+  btn.addEventListener("click", () => {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    if (isDark) {
+      document.documentElement.removeAttribute("data-theme");
+      localStorage.setItem(THEME_KEY, "light");
+      btn.textContent = "🌙";
+    } else {
+      document.documentElement.setAttribute("data-theme", "dark");
+      localStorage.setItem(THEME_KEY, "dark");
+      btn.textContent = "☀️";
+    }
+  });
 }
 
 // ---------- Başlangıç ----------
@@ -713,6 +915,7 @@ async function switchAppTab(which) {
 function init() {
   initAuthTabs();
   initAppTabs();
+  initThemeToggle();
   renderEkipmanCheckboxes();
 
   el("form-login").addEventListener("submit", handleLogin);

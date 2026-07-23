@@ -13,9 +13,12 @@
       <div class="brand-logo">R</div>
       <span>Rezerv</span>
     </div>
-    <div class="user-box hidden" id="user-box">
-      <span class="user-name" id="user-name"></span>
-      <button class="btn btn-sm btn-secondary" id="logout-btn" style="background:transparent;color:#fff;border-color:#fff;">Çıkış Yap</button>
+    <div class="header-right">
+      <button class="theme-toggle-btn" id="theme-toggle-btn" title="Karanlık/Aydınlık Mod" type="button">🌙</button>
+      <div class="user-box hidden" id="user-box">
+        <span class="user-name" id="user-name"></span>
+        <button class="btn btn-sm btn-secondary" id="logout-btn" style="background:transparent;color:#fff;border-color:#fff;">Çıkış Yap</button>
+      </div>
     </div>
   </header>
 
@@ -74,8 +77,11 @@
       <div class="tabs">
         <button class="tab-btn active" id="tab-rooms-btn">Odalar</button>
         <button class="tab-btn" id="tab-find-btn">Boş Oda Bul</button>
+        <button class="tab-btn" id="tab-favorites-btn">Favorilerim</button>
         <button class="tab-btn" id="tab-reservations-btn">Rezervasyonlarım</button>
         <button class="tab-btn" id="tab-history-btn">Geçmişim</button>
+        <button class="tab-btn" id="tab-stats-btn">İstatistiklerim</button>
+        <button class="tab-btn hidden" id="tab-admin-btn">Admin Paneli</button>
       </div>
 
       <div class="panel" id="panel-rooms">
@@ -136,6 +142,34 @@
           Yaptığınız tüm rezervasyonlar (geçmiş ve gelecek).
         </p>
         <div class="reservation-list" id="history-list"></div>
+      </div>
+
+      <div class="panel hidden" id="panel-favorites">
+        <h2>Favori Odalarım</h2>
+        <div class="room-grid" id="favorites-grid"></div>
+      </div>
+
+      <div class="panel hidden" id="panel-stats">
+        <h2>Kişisel İstatistiklerim</h2>
+        <div class="stats-grid" id="my-stats-grid"></div>
+      </div>
+
+      <div class="panel hidden" id="panel-admin">
+        <h2>Admin Paneli — Genel Bakış</h2>
+        <div class="stats-grid" id="admin-overview-grid"></div>
+
+        <h3>En Çok / En Az Kullanılan Odalar</h3>
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="admin-rooms-table"><tbody></tbody></table>
+        </div>
+
+        <h3>Departman İstatistikleri</h3>
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="admin-departments-table"><tbody></tbody></table>
+        </div>
+
+        <h3>Zaman Bazlı Yoğunluk</h3>
+        <div class="stats-grid" id="admin-time-grid"></div>
       </div>
     </div>
 

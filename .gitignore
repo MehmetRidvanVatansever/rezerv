@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 *.db
+*.log
 .env
 .DS_Store
 .idea/

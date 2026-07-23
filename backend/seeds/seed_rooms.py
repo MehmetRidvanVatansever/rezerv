@@ -4,9 +4,9 @@ Seed Script
 Bu script, rooms.json dosyasindaki gercek oda verisini (Calik Enerji ofis
 gezisiyle toplanan envanter) rooms tablosuna yukler.
 
-Kullanim:
-    flask --app main init-db   # once semayi kur (varsa uzerine yazmaz)
-    python seed.py              # odalari yukle / guncelle
+Kullanim (backend/ dizininden calistirilmali):
+    flask --app main init-db      # once semayi kur (varsa uzerine yazmaz)
+    python -m seeds.seed_rooms    # odalari yukle / guncelle
 
 Not: 'ad' alani ayirt edici anahtar olarak kullanilir. Ayni isimde bir oda
 zaten varsa kaydı SILMEZ, sadece konum/kapasite/ekipman alanlarini

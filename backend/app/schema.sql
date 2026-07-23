@@ -41,6 +41,17 @@ CREATE TABLE IF NOT EXISTS reservations (
 );
 
 -- ============================================
+-- FAVORITE ROOMS
+-- ============================================
+CREATE TABLE IF NOT EXISTS favorite_rooms (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id),
+    room_id    INTEGER NOT NULL REFERENCES rooms(id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (user_id, room_id)
+);
+
+-- ============================================
 -- INDEX — çakışma kontrolü sorgusunu hızlandırır
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_reservations_room_time

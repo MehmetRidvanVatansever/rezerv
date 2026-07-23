@@ -93,10 +93,21 @@ def test_cakisma_birebir_ayni_reddedilir(auth_client, mevcut_rezervasyon):
     assert resp.status_code == 409
 
 
-def test_ayni_saat_farkli_oda_gecerli(auth_client, mevcut_rezervasyon):
+def test_ayni_saat_farkli_oda_gecerli(app, auth_client, mevcut_rezervasyon):
     """Ayni saat, farkli oda -> gecerli"""
-    resp = auth_client.post("/rooms", json={"ad": "Baska Oda", "konum": "5. Kat", "kapasite": 4})
-    yeni_oda_id = resp.get_json()["id"]
+    # Not: oda olusturma artik admin-only oldugu icin (bkz. rooms.py),
+    # test icin ikinci odayi ornek_oda fixture'indaki gibi direkt DB'ye ekliyoruz.
+    with app.app_context():
+        import json
+        from app.db import get_db
+        db = get_db()
+        cur = db.execute(
+            "INSERT INTO rooms (ad, konum, kapasite, ekipman, is_active) VALUES (?, ?, ?, ?, 1)",
+            ("Baska Oda", "5. Kat", 4, json.dumps([])),
+        )
+        db.commit()
+        yeni_oda_id = cur.lastrowid
+
     resp2 = _rezervasyon_yap(
         auth_client, yeni_oda_id,
         mevcut_rezervasyon["baslangic"], mevcut_rezervasyon["bitis"]
@@ -206,8 +217,8 @@ def test_olmayan_oda_404(auth_client):
     assert resp.status_code == 404
 
 
-def test_pasif_odaya_rezervasyon_yapilamaz(auth_client, ornek_oda):
-    auth_client.put(f"/rooms/{ornek_oda['id']}", json={"is_active": False})
+def test_pasif_odaya_rezervasyon_yapilamaz(admin_client, auth_client, ornek_oda):
+    admin_client.post(f"/rooms/{ornek_oda['id']}/deactivate")
     b = gelecek_hafta_ici(saat=10)
     e = b.replace(hour=11)
     resp = _rezervasyon_yap(auth_client, ornek_oda["id"], b, e)
@@ -265,3 +276,23 @@ def test_girissiz_kullanici_reservations_gorebilir_ama_olusturamaz(client, ornek
     """GET /reservations login gerektirmiyor (FR-7), POST gerektiriyor (bkz. bolum 5)."""
     resp = client.get("/reservations")
     assert resp.status_code == 200
+
+
+def test_my_stats_girissiz_401(client):
+    resp = client.get("/reservations/my-stats")
+    assert resp.status_code == 401
+
+
+def test_my_stats_dogru_hesaplar(auth_client, mevcut_rezervasyon):
+    """mevcut_rezervasyon 10:00-11:00 (60dk), auth_client tarafindan olusturuldu."""
+    resp = auth_client.get("/reservations/my-stats").get_json()
+    assert resp["toplam_rezervasyon"] == 1
+    assert resp["ortalama_toplanti_suresi_dk"] == 60.0
+    assert resp["en_cok_kullandigi_oda"]["id"] == mevcut_rezervasyon["room_id"]
+
+
+def test_my_stats_baskasinin_rezervasyonunu_saymaz(auth_client, diger_auth_client, mevcut_rezervasyon):
+    """mevcut_rezervasyon auth_client'a ait; diger_auth_client'in stats'i bos olmali."""
+    resp = diger_auth_client.get("/reservations/my-stats").get_json()
+    assert resp["toplam_rezervasyon"] == 0
+    assert resp["en_cok_kullandigi_oda"] is None

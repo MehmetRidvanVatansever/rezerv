@@ -38,4 +38,21 @@ def create_app(test_config=None):
         get_db().execute("SELECT 1").fetchone()
         return {"status": "ok", "database": app.config["DATABASE"]}
 
+    # ---- Frontend'i ayni origin'den servis et ----
+    # (boylece fetch() session cookie'sini CORS ayari gerekmeden gonderebilir)
+    from flask import send_from_directory
+    FRONTEND_DIR = os.path.join(os.path.dirname(app.root_path), "..", "frontend")
+
+    @app.get("/")
+    def frontend_index():
+        return send_from_directory(FRONTEND_DIR, "index.html")
+
+    @app.get("/css/<path:filename>")
+    def frontend_css(filename):
+        return send_from_directory(os.path.join(FRONTEND_DIR, "css"), filename)
+
+    @app.get("/js/<path:filename>")
+    def frontend_js(filename):
+        return send_from_directory(os.path.join(FRONTEND_DIR, "js"), filename)
+
     return app

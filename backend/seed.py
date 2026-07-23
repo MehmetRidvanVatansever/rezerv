@@ -6,11 +6,14 @@ gezisiyle toplanan envanter) rooms tablosuna yukler.
 
 Kullanim:
     flask --app main init-db   # once semayi kur (varsa uzerine yazmaz)
-    python seed.py              # odalari yukle
+    python seed.py              # odalari yukle / guncelle
 
-Not: id sutunu rooms.json'da referans amacli bulunur; veritabanina
-AUTOINCREMENT ile tekrar id atanir, ayni 'ad' zaten varsa o kayit
-atlanir (script tekrar tekrar guvenle calistirilabilir).
+Not: 'ad' alani ayirt edici anahtar olarak kullanilir. Ayni isimde bir oda
+zaten varsa kaydı SILMEZ, sadece konum/kapasite/ekipman alanlarini
+rooms.json ile es zamanlar (upsert). Boylece rooms.json'da yapilan bir
+guncelleme (orn. ekipman listesi eklenmesi) script tekrar calistirildiginda
+mevcut kayitlara da yansir; is_active durumu ve o odaya bagli
+rezervasyonlar korunur.
 """
 import json
 import os
@@ -29,30 +32,35 @@ def seed_rooms():
         with open(ROOMS_FILE, encoding="utf-8") as f:
             rooms = json.load(f)
 
-        eklenen, atlanan = 0, 0
+        eklenen, guncellenen = 0, 0
         for room in rooms:
-            exists = db.execute(
-                "SELECT 1 FROM rooms WHERE ad = ?", (room["ad"],)
+            ekipman_json = json.dumps(room.get("ekipman", []), ensure_ascii=False)
+            existing = db.execute(
+                "SELECT id FROM rooms WHERE ad = ?", (room["ad"],)
             ).fetchone()
-            if exists:
-                atlanan += 1
-                continue
 
-            db.execute(
-                "INSERT INTO rooms (ad, konum, kapasite, ekipman, is_active) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (
-                    room["ad"],
-                    room["konum"],
-                    room["kapasite"],
-                    json.dumps(room.get("ekipman", []), ensure_ascii=False),
-                    int(bool(room.get("is_active", True))),
-                ),
-            )
-            eklenen += 1
+            if existing:
+                db.execute(
+                    "UPDATE rooms SET konum = ?, kapasite = ?, ekipman = ? WHERE id = ?",
+                    (room["konum"], room["kapasite"], ekipman_json, existing["id"]),
+                )
+                guncellenen += 1
+            else:
+                db.execute(
+                    "INSERT INTO rooms (ad, konum, kapasite, ekipman, is_active) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (
+                        room["ad"],
+                        room["konum"],
+                        room["kapasite"],
+                        ekipman_json,
+                        int(bool(room.get("is_active", True))),
+                    ),
+                )
+                eklenen += 1
 
         db.commit()
-        print(f"Seed tamamlandi: {eklenen} oda eklendi, {atlanan} oda zaten vardi (atlandi).")
+        print(f"Seed tamamlandi: {eklenen} oda eklendi, {guncellenen} oda guncellendi.")
 
 
 if __name__ == "__main__":

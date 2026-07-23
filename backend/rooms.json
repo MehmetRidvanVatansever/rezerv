@@ -4,7 +4,11 @@
     "ad": "Güneş",
     "konum": "Kat Zemin",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -12,7 +16,11 @@
     "ad": "Rüzgar",
     "konum": "Kat Zemin",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -44,7 +52,9 @@
     "ad": "Çalık Proje Mühendislik T. Odası - Oda No:4",
     "konum": "Kat 01",
     "kapasite": 2,
-    "ekipman": [],
+    "ekipman": [
+      "tv"
+    ],
     "is_active": true
   },
   {
@@ -52,7 +62,9 @@
     "ad": "Çalık Proje Mühendislik T. Odası - Oda No:5",
     "konum": "Kat 01",
     "kapasite": 5,
-    "ekipman": [],
+    "ekipman": [
+      "tv"
+    ],
     "is_active": true
   },
   {
@@ -92,7 +104,10 @@
     "ad": "Akasya",
     "konum": "Kat 01",
     "kapasite": 6,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "whiteboard"
+    ],
     "is_active": true
   },
   {
@@ -100,7 +115,11 @@
     "ad": "Begonya",
     "konum": "Kat 02",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -108,7 +127,11 @@
     "ad": "Nilüfer",
     "konum": "Kat 02",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -116,7 +139,11 @@
     "ad": "Sakura",
     "konum": "Kat 02",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -124,7 +151,11 @@
     "ad": "Sarmaşık",
     "konum": "Kat 02",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -132,7 +163,11 @@
     "ad": "Sardunya (Batı)",
     "konum": "Kat 03",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -140,7 +175,11 @@
     "ad": "Karanfil (Doğu)",
     "konum": "Kat 03",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -148,7 +187,11 @@
     "ad": "Açelya (GM)",
     "konum": "Kat 04",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -156,7 +199,10 @@
     "ad": "Gül (Doğu)",
     "konum": "Kat 04",
     "kapasite": 8,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "whiteboard"
+    ],
     "is_active": true
   },
   {
@@ -164,7 +210,10 @@
     "ad": "Papatya (Batı)",
     "konum": "Kat 04",
     "kapasite": 8,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "whiteboard"
+    ],
     "is_active": true
   },
   {
@@ -172,7 +221,11 @@
     "ad": "Sümbül (Batı)",
     "konum": "Kat 05",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -180,7 +233,11 @@
     "ad": "Ender Hıdıroğlu Toplantı Odası",
     "konum": "Kat 05",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -188,7 +245,11 @@
     "ad": "Lityum (Batı)",
     "konum": "Kat 06",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -196,7 +257,11 @@
     "ad": "Gardenya (Doğu)",
     "konum": "Kat 07",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -204,7 +269,10 @@
     "ad": "Zambak (Batı)",
     "konum": "Kat 07",
     "kapasite": 8,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "whiteboard"
+    ],
     "is_active": true
   },
   {
@@ -212,7 +280,10 @@
     "ad": "Gelincik (Denetim)",
     "konum": "Kat 08",
     "kapasite": 8,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "whiteboard"
+    ],
     "is_active": true
   },
   {
@@ -220,7 +291,10 @@
     "ad": "Begonvil (Kuzey)",
     "konum": "Kat 08",
     "kapasite": 6,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "whiteboard"
+    ],
     "is_active": true
   },
   {
@@ -228,7 +302,10 @@
     "ad": "Hanımeli (Batı)",
     "konum": "Kat 08",
     "kapasite": 8,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "whiteboard"
+    ],
     "is_active": true
   },
   {
@@ -236,7 +313,11 @@
     "ad": "Manolya",
     "konum": "Kat 09",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -244,7 +325,10 @@
     "ad": "Frezya (Batı)",
     "konum": "Kat 09",
     "kapasite": 8,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "whiteboard"
+    ],
     "is_active": true
   },
   {
@@ -252,7 +336,11 @@
     "ad": "Defne (CEO)",
     "konum": "Kat 09",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -260,7 +348,12 @@
     "ad": "Konferans Salonu",
     "konum": "Kat B3",
     "kapasite": 240,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu",
+      "mikrofon"
+    ],
     "is_active": true
   },
   {
@@ -268,7 +361,11 @@
     "ad": "Mimoza",
     "konum": "Kat B3",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -276,7 +373,11 @@
     "ad": "Yasemin",
     "konum": "Kat B3",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -284,7 +385,11 @@
     "ad": "Çalık Akademi Eğitim ve Etkileşim Salonu",
     "konum": "Diğer Lokasyon",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   },
   {
@@ -292,7 +397,11 @@
     "ad": "Propa Binası 6. Kat Toplantı Odası",
     "konum": "Diğer Lokasyon",
     "kapasite": 10,
-    "ekipman": [],
+    "ekipman": [
+      "projektor",
+      "tv",
+      "konferans telefonu"
+    ],
     "is_active": true
   }
 ]

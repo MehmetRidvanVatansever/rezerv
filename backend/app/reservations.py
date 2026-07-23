@@ -18,7 +18,7 @@ from flask import Blueprint, jsonify, request, g
 
 from .auth import login_required
 from .db import get_db
-from .errors import error_response, bad_request, not_found, conflict, forbidden
+from .errors import error_response, bad_request, not_found, conflict, forbidden, unauthorized
 from .logging_config import logger
 
 bp = Blueprint("reservations", __name__, url_prefix="/reservations")
@@ -182,6 +182,7 @@ def create_reservation():
 def list_reservations():
     room_id = request.args.get("room_id")
     date_str = request.args.get("date")
+    mine = request.args.get("mine")
 
     query = "SELECT * FROM reservations WHERE 1=1"
     params = []
@@ -193,6 +194,12 @@ def list_reservations():
     if date_str:
         query += " AND date(start_time) = ?"
         params.append(date_str)
+
+    if mine == "true":
+        if g.user is None:
+            return unauthorized()
+        query += " AND user_id = ?"
+        params.append(g.user["id"])
 
     query += " ORDER BY start_time"
 

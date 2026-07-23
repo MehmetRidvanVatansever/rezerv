@@ -301,3 +301,43 @@ def delete_reservation(reservation_id):
     db.commit()
     logger.info(f"Rezervasyon iptal edildi: id={reservation_id} user_id={g.user['id']}")
     return jsonify({"message": "Rezervasyon iptal edildi."})
+
+
+@bp.route("/my-stats", methods=("GET",))
+@login_required
+def my_stats():
+    """Giriş yapmış kullanıcının kendi istatistikleri (admin/stats/user/<id>
+    ile ayni hesaplama mantığı, ama admin yetkisi gerektirmez, sadece
+    g.user'ın kendi verisini döner)."""
+    db = get_db()
+    user_id = g.user["id"]
+
+    genel = db.execute(
+        """SELECT COUNT(*) AS toplam,
+                  AVG((julianday(end_time) - julianday(start_time)) * 24 * 60) AS ort_sure_dk
+           FROM reservations WHERE user_id = ?""",
+        (user_id,),
+    ).fetchone()
+
+    en_cok_kullandigi_oda = db.execute(
+        """SELECT rooms.id, rooms.ad, COUNT(reservations.id) AS sayi
+           FROM reservations
+           JOIN rooms ON rooms.id = reservations.room_id
+           WHERE reservations.user_id = ?
+           GROUP BY rooms.id
+           ORDER BY sayi DESC
+           LIMIT 1""",
+        (user_id,),
+    ).fetchone()
+
+    ort_sure = genel["ort_sure_dk"]
+
+    return jsonify({
+        "toplam_rezervasyon": genel["toplam"],
+        "ortalama_toplanti_suresi_dk": round(ort_sure, 1) if ort_sure is not None else None,
+        "en_cok_kullandigi_oda": (
+            {"id": en_cok_kullandigi_oda["id"], "ad": en_cok_kullandigi_oda["ad"],
+             "sayi": en_cok_kullandigi_oda["sayi"]}
+            if en_cok_kullandigi_oda is not None else None
+        ),
+    })

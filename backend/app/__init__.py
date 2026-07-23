@@ -1,7 +1,7 @@
 # Uygulama fabrikası: Flask uygulamasını yapılandırır, veritabanını başlatır
 # ve gerekli blueprint'leri (auth vb.) kaydederek uygulamayı hazır hale getirir.
 import os
-from flask import Flask
+from flask import Flask, request
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -24,6 +24,35 @@ def create_app(test_config=None):
     
     # Hata yanıtları için ortak modül
     from . import errors
+
+    # ---- Beklenmeyen (yakalanmamış) hatalar için genel yakalayıcı ----
+    # Buraya kadar hiçbir yerde logger.error() çağrılmıyordu, bu yüzden
+    # error.log hep boş kalıyordu. Bu handler, kodun hiçbir yerde
+    # try/except ile beklemediği gerçek hataları (örn. beklenmeyen bir
+    # None.attribute erişimi, veritabanı bağlantı hatası vb.) yakalar,
+    # error.log'a tam hata izi (traceback) ile yazar ve kullanıcıya genel
+    # bir 500 yanıtı döner. 400/401/403/404/409 gibi kendi ürettiğimiz
+    # "beklenen" hatalar zaten normal return ile döndüğü için buraya hiç
+    # düşmez; bu handler yalnızca gerçek programlama hataları içindir.
+    from werkzeug.exceptions import HTTPException
+    from .logging_config import logger
+    from .errors import error_response
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(e):
+        if isinstance(e, HTTPException):
+            # 404 (bilinmeyen route), 405 (yanlış HTTP metodu) gibi
+            # Flask/Werkzeug'un kendi ürettiği durumlar; bunlar "beklenmeyen
+            # hata" değil, normal akışın bir parçası, error.log'u kirletmesin.
+            return e
+        logger.error(
+            f"Beklenmeyen hata: {type(e).__name__}: {e} "
+            f"[{request.method} {request.path}]",
+            exc_info=True,
+        )
+        return error_response(
+            "internal_error", "Sunucuda beklenmeyen bir hata oluştu.", 500
+        )
 
     from . import auth
     app.register_blueprint(auth.bp)

@@ -20,6 +20,7 @@ from flask import Blueprint, request, jsonify, g
 from .auth import login_required, admin_required
 from .db import get_db
 from .errors import error_response, bad_request, not_found, conflict
+from .logging_config import logger
 
 bp = Blueprint("rooms", __name__, url_prefix="/rooms")
 
@@ -71,6 +72,7 @@ def create_room():
     db.commit()
 
     room = db.execute("SELECT * FROM rooms WHERE id = ?", (cur.lastrowid,)).fetchone()
+    logger.info(f"Oda oluşturuldu: room_id={room['id']} ad={ad} admin_id={g.user['id']}")
     return jsonify(room_to_dict(room)), 201
 
 
@@ -88,7 +90,11 @@ def update_room(room_id):
     konum = data.get("konum", room["konum"])
     kapasite = data.get("kapasite", room["kapasite"])
     ekipman = data.get("ekipman", json.loads(room["ekipman"]) if room["ekipman"] else [])
-    is_active = data.get("is_active", bool(room["is_active"]))
+    # NOT: is_active bu endpoint'ten kasıtlı olarak okunmuyor/değiştirilmiyor.
+    # Pasifleştirme/aktifleştirme yalnızca aşağıdaki /deactivate ve
+    # /reactivate endpoint'lerinden yapılabilir; böylece bu durum değişikliği
+    # her zaman kendi log satırından geçer, PUT üzerinden arka kapıdan
+    # değiştirilemez.
 
     if not isinstance(kapasite, int) or kapasite <= 0:
         return bad_request("Kapasite pozitif bir tam sayı olmalı.")
@@ -97,12 +103,13 @@ def update_room(room_id):
         return bad_request("Ekipman bir liste olmalı.")
 
     db.execute(
-        "UPDATE rooms SET ad = ?, konum = ?, kapasite = ?, ekipman = ?, is_active = ? WHERE id = ?",
-        (ad, konum, kapasite, json.dumps(ekipman, ensure_ascii=False), int(bool(is_active)), room_id),
+        "UPDATE rooms SET ad = ?, konum = ?, kapasite = ?, ekipman = ? WHERE id = ?",
+        (ad, konum, kapasite, json.dumps(ekipman, ensure_ascii=False), room_id),
     )
     db.commit()
 
     updated = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
+    logger.info(f"Oda güncellendi: room_id={room_id} admin_id={g.user['id']}")
     return jsonify(room_to_dict(updated))
 
 
@@ -118,6 +125,7 @@ def deactivate_room(room_id):
     db.commit()
 
     updated = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
+    logger.info(f"Oda pasifleştirildi: room_id={room_id} admin_id={g.user['id']}")
     return jsonify(room_to_dict(updated))
 
 
@@ -133,6 +141,7 @@ def reactivate_room(room_id):
     db.commit()
 
     updated = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
+    logger.info(f"Oda yeniden aktif edildi: room_id={room_id} admin_id={g.user['id']}")
     return jsonify(room_to_dict(updated))
 
 
@@ -166,6 +175,7 @@ def toggle_favorite(room_id):
     if existing is not None:
         db.execute("DELETE FROM favorite_rooms WHERE id = ?", (existing["id"],))
         db.commit()
+        logger.info(f"Favori kaldırıldı: user_id={g.user['id']} room_id={room_id}")
         return jsonify({"room_id": room_id, "favorited": False})
 
     db.execute(
@@ -173,4 +183,5 @@ def toggle_favorite(room_id):
         (g.user["id"], room_id),
     )
     db.commit()
+    logger.info(f"Favori eklendi: user_id={g.user['id']} room_id={room_id}")
     return jsonify({"room_id": room_id, "favorited": True})

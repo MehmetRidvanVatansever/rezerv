@@ -138,3 +138,18 @@ def logout():
         logger.info(f"Çıkış yapıldı: user_id={g.user['id']}")
     session.clear()
     return jsonify({"message": "Çıkış yapıldı."})
+
+
+@bp.route("/me", methods=("GET",))
+def me():
+    """Frontend, sayfa yenilendiğinde (F5) session'ın hâlâ geçerli olup
+    olmadığını ve giriş yapmış kullanıcının kim olduğunu bu endpoint'ten
+    öğrenir. login() ile aynı user şeklini döner, tutarlılık için."""
+    if g.user is None:
+        return unauthorized("Giriş yapılmamış.")
+    return jsonify({
+        "id": g.user["id"],
+        "ad_soyad": g.user["ad_soyad"],
+        "departman": g.user["departman"],
+        "role": g.user["role"],
+    })

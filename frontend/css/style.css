@@ -73,16 +73,14 @@ body {
 }
 
 .app-header .brand-logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  height: 32px;
+  width: auto;
+  max-width: 160px;
+  border-radius: 4px;
   background: #fff;
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 0.9rem;
+  padding: 4px 8px;
+  display: block;
+  object-fit: contain;
 }
 
 .user-box {

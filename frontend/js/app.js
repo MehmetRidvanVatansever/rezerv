@@ -931,6 +931,19 @@ function init() {
   const today = new Date().toISOString().split("T")[0];
   el("res-date").setAttribute("min", today);
   el("find-date").setAttribute("min", today);
+
+  restoreSession();
+}
+
+/** Sayfa yenilendiginde (F5) session cookie'si hala gecerliyse kullaniciyi
+ * tekrar login ekranina dusurmeden dogrudan uygulamaya al. */
+async function restoreSession() {
+  try {
+    state.user = await api("/auth/me");
+    await enterApp();
+  } catch {
+    // session yok/gecersiz -> auth-view zaten varsayilan olarak gorunur, bir sey yapmaya gerek yok
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);

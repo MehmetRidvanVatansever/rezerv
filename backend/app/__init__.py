@@ -86,4 +86,8 @@ def create_app(test_config=None):
     def frontend_js(filename):
         return send_from_directory(os.path.join(FRONTEND_DIR, "js"), filename)
 
+    @app.get("/assets/<path:filename>")
+    def frontend_assets(filename):
+        return send_from_directory(os.path.join(FRONTEND_DIR, "assets"), filename)
+
     return app
